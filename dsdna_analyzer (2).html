@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anti-dsDNA Antibody Analyzer · Microfluidic Colorimetric Assay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F7F8;
+    --surface:#FFFFFF;
+    --surface-dark:#0A1E29;
+    --surface-dark-2:#0F2A38;
+    --primary:#0E5C68;
+    --primary-dark:#093C45;
+    --cyan:#3FD0E0;
+    --cyan-soft:rgba(63,208,224,.18);
+    --amber:#E2A23B;
+    --positive:#B23A48;
+    --negative:#2F7A52;
+    --borderline:#A87B12;
+    --ink:#16232C;
+    --muted:#5C6F79;
+    --faint:#8AA0A8;
+    --border:#DCE5E8;
+    --border-dark:#1C3947;
+    --radius:14px;
+    --display: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+    --shadow: 0 1px 2px rgba(16,40,48,.04), 0 6px 20px rgba(16,40,48,.06);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--display);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,video,canvas{max-width:100%;display:block;}
+  button{font-family:inherit;}
+  input,select{font-family:inherit;}
+
+  /* ---------- layout shell ---------- */
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px 80px;}
+  .topbar{
+    background:linear-gradient(180deg,var(--surface-dark) 0%, var(--surface-dark-2) 100%);
+    color:#EAF6F8;
+    padding:34px 20px 60px;
+    position:relative;
+    overflow:hidden;
+  }
+  .topbar::after{
+    content:"";
+    position:absolute;inset:0;
+    background:
+      radial-gradient(420px 220px at 85% -10%, rgba(63,208,224,.20), transparent 60%),
+      radial-gradient(280px 180px at 10% 110%, rgba(63,208,224,.10), transparent 60%);
+    pointer-events:none;
+  }
+  .topbar-inner{max-width:980px;margin:0 auto;position:relative;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--cyan);
+    display:flex;align-items:center;gap:8px;
+    margin:0 0 10px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+  .topbar h1{
+    margin:0 0 8px;
+    font-size:clamp(26px,4vw,34px);
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  .topbar p{margin:0;color:#A9C6CC;max-width:560px;font-size:14.5px;}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    margin-top:18px;
+    font-family:var(--mono);
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    padding:6px 11px;border-radius:99px;
+    background:rgba(226,162,59,.12);
+    border:1px solid rgba(226,162,59,.4);
+    color:#F0C77F;
+  }
+
+  /* ---------- stepper ---------- */
+  .stepper{
+    display:flex;gap:6px;
+    margin:-30px auto 28px;
+    max-width:980px;
+    padding:0 20px;
+    overflow-x:auto;
+    position:relative;
+    z-index:2;
+  }
+  .stepper button{
+    flex:1;min-width:130px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    cursor:pointer;
+    text-align:left;
+    box-shadow:var(--shadow);
+    transition:border-color .15s, transform .1s;
+  }
+  .stepper button:hover{border-color:var(--primary);transform:translateY(-1px);}
+  .stepper .num{
+    font-family:var(--mono);font-size:11px;color:var(--primary);
+    display:block;letter-spacing:.08em;margin-bottom:3px;
+  }
+  .stepper .lbl{font-size:12.5px;font-weight:600;color:var(--ink);}
+  .stepper button.current{background:#fff;border-color:var(--primary);box-shadow:0 0 0 3px rgba(14,92,104,.12);}
+  .stepper button.current .num{color:var(--primary);}
+  .stepper button.done{background:#EAF5EE;border-color:#BFE2CC;}
+  .stepper button.done .num{color:var(--negative);}
+  .stepper button.done .lbl{color:#2F5440;}
+
+  /* ---------- card / section ---------- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:26px 26px 28px;
+    margin-bottom:22px;
+    box-shadow:var(--shadow);
+    scroll-margin-top:20px;
+  }
+  /* one-step-at-a-time flow */
+  .step-panel{display:none;}
+  .step-panel.active{display:block;animation:panelIn .25s ease;}
+  @keyframes panelIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .step-nav{
+    display:flex;align-items:center;gap:16px;
+    margin-top:28px;padding-top:18px;
+    border-top:1px solid var(--border);
+  }
+  .step-notice{flex:1;font-size:12.5px;display:none;}
+  .step-notice.show{display:block;}
+  .step-notice.warn{color:#8A5B12;}
+  .step-notice.err{color:#9A2F2F;}
+  .card-head{
+    display:flex;align-items:baseline;gap:10px;
+    margin-bottom:18px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .card-head .step-num{
+    font-family:var(--mono);font-size:12px;color:#fff;background:var(--primary);
+    padding:3px 8px;border-radius:6px;letter-spacing:.04em;
+  }
+  .card-head h2{margin:0;font-size:18px;font-weight:700;}
+  .card-head .hint{margin-left:auto;font-size:12px;color:var(--faint);}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:680px){.grid,.grid3{grid-template-columns:1fr;}}
+
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500;}
+  .field input,.field select{
+    width:100%;padding:9px 11px;
+    border:1px solid var(--border);border-radius:9px;
+    font-size:13.5px;color:var(--ink);background:#FBFDFD;
+    transition:border-color .12s;
+  }
+  .field input:focus,.field select:focus{outline:none;border-color:var(--primary);background:#fff;}
+  .helptext{font-size:12px;color:var(--faint);margin-top:10px;line-height:1.55;}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:9px 16px;border-radius:9px;border:1px solid var(--border);
+    background:#fff;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;
+    transition:all .12s;
+  }
+  .btn:hover{border-color:var(--primary);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--primary);padding:6px 8px;}
+  .btn-sm{padding:6px 11px;font-size:12px;}
+  .btn-danger{color:var(--positive);}
+
+  /* ---------- table ---------- */
+  table.std-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.std-table th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--muted);font-weight:600;padding:0 8px 8px;
+  }
+  table.std-table td{padding:6px 8px;border-top:1px solid var(--border);vertical-align:middle;}
+  table.std-table input[type=number]{width:90px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-family:var(--mono);}
+  .swatch{width:14px;height:14px;border-radius:50%;display:inline-block;margin-right:8px;border:2px solid;vertical-align:middle;}
+  .mono-num{font-family:var(--mono);}
+  .status-pill{
+    font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:99px;
+    background:#EEF2F2;color:var(--faint);letter-spacing:.03em;
+  }
+  .status-pill.ok{background:#E5F3EB;color:var(--negative);}
+
+  /* ---------- device viewer (signature element) ---------- */
+  .tabs{display:flex;gap:4px;margin-bottom:14px;}
+  .tabs button{
+    padding:8px 14px;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;
+    background:#F0F4F5;color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .tabs button.active{background:var(--surface-dark);color:#fff;border-color:var(--surface-dark);}
+
+  .device-viewer{
+    background:
+      radial-gradient(600px 260px at 50% -20%, rgba(63,208,224,.10), transparent 60%),
+      var(--surface-dark);
+    border:1px solid var(--border-dark);
+    border-radius:12px;
+    padding:16px;
+    position:relative;
+  }
+  .device-viewer .stage-wrap{
+    position:relative;border-radius:8px;overflow:hidden;
+    background:repeating-conic-gradient(#0D2530 0% 25%, #0A1F29 0% 50%) 0 0/22px 22px;
+    border:1px dashed rgba(63,208,224,.3);
+    min-height:240px;display:flex;align-items:center;justify-content:center;
+  }
+  .device-viewer .empty-msg{color:#5E8893;font-size:13px;font-family:var(--mono);text-align:center;padding:50px 20px;}
+  #stage{cursor:crosshair;width:100%;height:auto;}
+  #camVideo{width:100%;border-radius:8px;}
+
+  .viewer-toolbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    margin-top:14px;padding-top:14px;border-top:1px solid rgba(63,208,224,.18);
+  }
+  .viewer-toolbar select{
+    background:#0D2934;border:1px solid var(--border-dark);color:#EAF6F8;
+    padding:8px 10px;border-radius:8px;font-size:12.5px;
+  }
+  .viewer-toolbar .btn{background:rgba(255,255,255,.05);border-color:rgba(63,208,224,.35);color:#EAF6F8;}
+  .viewer-toolbar .btn:hover{background:rgba(63,208,224,.15);}
+  .viewer-toolbar .btn-primary{background:var(--cyan);border-color:var(--cyan);color:#08222A;}
+  .viewer-toolbar .btn-primary:hover{background:#5EDCEA;}
+
+  .marker-panel{
+    margin-top:14px;background:#0D2934;border:1px solid var(--border-dark);
+    border-radius:10px;padding:14px 16px;display:none;color:#EAF6F8;
+  }
+  .marker-panel.show{display:block;}
+  .marker-panel .mp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .marker-panel .mp-head .name{font-family:var(--mono);font-size:12.5px;color:var(--cyan);}
+  .mp-row{display:grid;grid-template-columns:90px 1fr 50px;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+  .mp-row input[type=range]{width:100%;accent-color:var(--cyan);}
+  .mp-row .val{font-family:var(--mono);text-align:right;color:#A9C6CC;}
+
+  .alert{
+    margin-top:14px;padding:10px 14px;border-radius:9px;font-size:12.5px;display:none;
+  }
+  .alert.show{display:block;}
+  .alert.warn{background:#FFF6E9;color:#8A5B12;border:1px solid #F2D9A6;}
+  .alert.err{background:#FDEEEC;color:#9A2F2F;border:1px solid #F3C3BE;}
+  .alert.info{background:#EAF5F8;color:#0E5C68;border:1px solid #C7E3E8;}
+
+  /* ---------- results ---------- */
+  .calib-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px;}
+  .calib-table th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:0 8px 6px;}
+  .calib-table td{padding:6px 8px;border-top:1px solid var(--border);font-family:var(--mono);}
+  .fit-line{font-family:var(--mono);font-size:13px;color:var(--primary-dark);background:#EEF6F6;padding:10px 14px;border-radius:9px;display:inline-block;margin-bottom:18px;}
+
+  .result-banner{
+    border-radius:12px;padding:24px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;
+    border:1px solid var(--border);background:#FAFCFC;
+  }
+  .result-banner .conc{font-family:var(--mono);}
+  .result-banner .conc .num{font-size:38px;font-weight:600;}
+  .result-banner .conc .unit{font-size:15px;color:var(--muted);margin-left:6px;}
+  .result-banner .label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px;}
+  .interp-tag{
+    font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.04em;
+    padding:9px 18px;border-radius:99px;text-transform:uppercase;
+  }
+  .interp-tag.positive{background:rgba(178,58,72,.1);color:var(--positive);border:1px solid rgba(178,58,72,.35);}
+  .interp-tag.negative{background:rgba(47,122,82,.1);color:var(--negative);border:1px solid rgba(47,122,82,.35);}
+  .interp-tag.borderline{background:rgba(168,123,18,.1);color:var(--borderline);border:1px solid rgba(168,123,18,.35);}
+  .interp-tag.pending{background:#EEF2F2;color:var(--faint);border:1px solid var(--border);}
+
+  .cutoff-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:18px;}
+  .cutoff-row .field{width:160px;}
+  .check-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+
+  /* ---------- future panel ---------- */
+  .future-panel{
+    background:#F7F9F4;border:1px dashed #C9D6BE;border-radius:10px;padding:16px 18px;margin-bottom:18px;
+  }
+  .future-panel h3{margin:0 0 6px;font-size:13px;color:#4A6741;}
+  .future-panel p{margin:0 0 10px;font-size:12.5px;color:#5E715A;line-height:1.6;}
+
+  footer{text-align:center;font-size:11.5px;color:var(--faint);padding:30px 20px 10px;}
+  ::selection{background:var(--cyan-soft);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="eyebrow"><span class="dot"></span>Microfluidic Colorimetric Assay</div>
+    <h1>Anti-dsDNA Antibody Analyzer</h1>
+    <p>Capture a microfluidic chip image, mark known-concentration standard chambers and the unknown sample chamber, and generate a calibrated concentration estimate with a printable patient report.</p>
+    <span class="badge">● Research / Prototype Use Only</span>
+  </div>
+</div>
+
+<nav class="stepper">
+  <button onclick="showStep(1)"><span class="num">01</span><span class="lbl">Patient &amp; Sample</span></button>
+  <button onclick="showStep(2)"><span class="num">02</span><span class="lbl">Calibration Standards</span></button>
+  <button onclick="showStep(3)"><span class="num">03</span><span class="lbl">Capture &amp; Mark</span></button>
+  <button onclick="showStep(4)"><span class="num">04</span><span class="lbl">Result</span></button>
+  <button onclick="showStep(5)"><span class="num">05</span><span class="lbl">Report</span></button>
+</nav>
+
+<div class="wrap">
+
+  <!-- STEP 1 -->
+  <section class="card step-panel" id="step1">
+    <div class="card-head"><span class="step-num">01</span><h2>Patient &amp; Sample</h2><span class="hint">Used on the printed report</span></div>
+    <div class="grid3">
+      <div class="field"><label>Patient name</label><input id="pName" placeholder="Jane Doe"></div>
+      <div class="field"><label>Patient ID / MRN</label><input id="pId" placeholder="MRN-00123"></div>
+      <div class="field"><label>Age</label><input id="pAge" type="number" min="0" placeholder="34"></div>
+      <div class="field"><label>Sex</label>
+        <select id="pSex"><option>Female</option><option>Male</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Referring doctor</label><input id="pDoctor" placeholder="Dr. A. Rahman"></div>
+      <div class="field"><label>Hospital / Laboratory</label><input id="pHospital" placeholder="City General Hospital, Lab Dept."></div>
+      <div class="field"><label>Sample ID</label><input id="pSample" placeholder="SMP-2026-0091"></div>
+      <div class="field"><label>Collection date</label><input id="pCollect" type="date"></div>
+      <div class="field"><label>Report date</label><input id="pReport" type="date"></div>
+    </div>
+    <div class="step-nav">
+      <div class="step-notice" id="notice1"></div>
+      <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card step-panel" id="step2">
+    <div class="card-head"><span class="step-num">02</span><h2>Calibration Standards</h2><span class="hint">At least 2 known concentrations needed</span></div>
+
+    <div class="grid3" style="margin-bottom:18px;">
+      <div class="field"><label>Concentration unit</label>
+        <select id="unitSelect"><option>IU/mL</option><option>U/mL</option><option>ng/mL</option><option>µg/mL</option></select>
+      </div>
+      <div class="field"><label>Color intensity definition</label>
+        <select id="channelSelect">
+          <option value="invgray" selected>Inverted grayscale (darker = higher)</option>
+          <option value="gray">Grayscale (lighter = higher)</option>
+          <option value="r">Red channel</option>
+          <option value="g">Green channel</option>
+          <option value="b">Blue channel</option>
+          <option value="sat">Saturation</option>
+        </select>
+      </div>
+      <div class="field"><label>Calibration curve fit</label>
+        <select id="fitSelect">
+          <option value="linear" selected>Linear (concentration vs. intensity)</option>
+          <option value="loglinear">Log-linear (wide-range dilution series)</option>
+        </select>
+      </div>
+    </div>
+
+    <table class="std-table" id="standardsTable">
+      <thead><tr><th>Chamber</th><th>Known conc.</th><th>Marker</th><th>Sampled intensity</th><th></th></tr></thead>
+      <tbody id="standardsBody"></tbody>
+    </table>
+    <button class="btn btn-sm" style="margin-top:10px" onclick="addStandardRow()">+ Add standard chamber</button>
+
+    <div class="check-row" style="margin-top:18px;">
+      <input type="checkbox" id="refEnable" onchange="toggleReference()">
+      <label for="refEnable">Use a reference / blank chamber to correct for camera &amp; lighting differences</label>
+    </div>
+    <div id="refRowWrap" style="display:none;">
+      <table class="std-table"><tbody><tr id="refRow"></tr></tbody></table>
+    </div>
+
+    <p class="helptext">Marker <em>size</em> is just for visually fitting each chamber's shape — it has no effect on the math. What matters is the concentration value you type in and where the marker sits. Add one row per standard chamber you actually pipetted (2 minimum, more gives a sturdier curve).</p>
+
+    <div class="step-nav">
+      <button class="btn" onclick="prevStep()">← Back</button>
+      <div class="step-notice" id="notice2"></div>
+      <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card step-panel" id="step3">
+    <div class="card-head"><span class="step-num">03</span><h2>Capture &amp; Mark Chambers</h2><span class="hint">Inlet · Channel · Chamber</span></div>
+
+    <div class="tabs">
+      <button id="tabUpload" class="active" onclick="switchTab('upload')">Upload photo</button>
+      <button id="tabCamera" onclick="switchTab('camera')">Use camera</button>
+    </div>
+
+    <div id="uploadPane">
+      <input type="file" id="fileInput" accept="image/*" capture="environment">
+    </div>
+    <div id="cameraPane" style="display:none;">
+      <video id="camVideo" autoplay playsinline style="display:none;background:#000;border-radius:8px;"></video>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-sm" onclick="startCamera()">Start camera</button>
+        <button class="btn btn-sm btn-primary" id="snapBtn" onclick="captureFrame()" disabled>Capture frame</button>
+      </div>
+    </div>
+
+    <div class="device-viewer" style="margin-top:16px;">
+      <div class="stage-wrap" id="stageWrap">
+        <div class="empty-msg" id="emptyMsg">No image loaded yet —<br>upload a photo or capture one from the camera<br>to begin placing markers.</div>
+        <canvas id="stage" style="display:none;"></canvas>
+      </div>
+
+      <div class="viewer-toolbar">
+        <select id="markerChooser"></select>
+        <button class="btn btn-sm" onclick="armSelectedMarker()">Place / move on image</button>
+        <button class="btn btn-sm btn-primary" id="sampleBtn" onclick="sampleAllMarkers()" disabled>Sample colors &amp; calibrate</button>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:#5E8893;" id="armHint"></span>
+      </div>
+
+      <div class="marker-panel" id="markerPanel">
+        <div class="mp-head"><span class="name" id="mpName">—</span><button class="btn-ghost" style="color:#EAF6F8;font-size:11px" onclick="deleteSelectedMarker()">remove marker</button></div>
+        <div class="mp-row"><span>Width (rx)</span><input type="range" id="mpRx" min="6" max="160" oninput="updateSelectedFromPanel()"><span class="val" id="mpRxVal"></span></div>
+        <div class="mp-row"><span>Height (ry)</span><input type="range" id="mpRy" min="6" max="160" oninput="updateSelectedFromPanel()"><span class="val" id="mpRyVal"></span></div>
+        <div class="mp-row"><span>Rotation</span><input type="range" id="mpRot" min="-180" max="180" oninput="updateSelectedFromPanel()"><span class="val" id="mpRotVal"></span></div>
+      </div>
+
+      <div class="alert" id="viewerAlert"></div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn" onclick="prevStep()">← Back</button>
+      <div class="step-notice" id="notice3"></div>
+      <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="card step-panel" id="step4">
+    <div class="card-head"><span class="step-num">04</span><h2>Result</h2><span class="hint">Calibration curve → estimated concentration</span></div>
+
+    <table class="calib-table" id="calibTable" style="display:none;">
+      <thead><tr><th>Chamber</th><th>Known conc.</th><th>Corrected intensity</th></tr></thead>
+      <tbody id="calibBody"></tbody>
+    </table>
+    <div id="fitLineWrap"></div>
+
+    <div class="cutoff-row">
+      <div class="field"><label>Positive cutoff</label><input type="number" id="cutoffHigh" placeholder="e.g. per kit insert"></div>
+      <div class="check-row" style="margin:0 0 9px;"><input type="checkbox" id="borderlineEnable" onchange="recomputeInterpretation()"><label for="borderlineEnable" style="margin:0">Use a borderline / equivocal band</label></div>
+      <div class="field" id="cutoffLowWrap" style="display:none;"><label>Negative below</label><input type="number" id="cutoffLow"></div>
+    </div>
+    <p class="helptext" style="margin-top:-8px;margin-bottom:18px;">Enter the cutoff(s) validated for your specific kit / method — anti-dsDNA reference ranges vary by manufacturer and technique (ELISA, IFA, multiplex) and are <strong>not</strong> assumed by this tool.</p>
+
+    <div class="result-banner">
+      <div class="conc">
+        <div class="label">Estimated unknown concentration</div>
+        <span class="num" id="resultConc">—</span><span class="unit" id="resultUnit"></span>
+      </div>
+      <div>
+        <div class="label">Interpretation</div>
+        <span class="interp-tag pending" id="interpTag">Awaiting data</span>
+      </div>
+      <div style="margin-left:auto;font-size:12px;color:var(--faint);font-family:var(--mono)" id="r2Display"></div>
+    </div>
+
+    <div class="step-nav">
+      <button class="btn" onclick="prevStep()">← Back</button>
+      <div class="step-notice" id="notice4"></div>
+      <button class="btn btn-primary" onclick="nextStep()">Continue to report →</button>
+    </div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section class="card step-panel" id="step5">
+    <div class="card-head"><span class="step-num">05</span><h2>Report</h2><span class="hint">Hospital-style patient report</span></div>
+
+    <div class="future-panel">
+      <h3>⚙ Camera correction model (optional, roadmap feature)</h3>
+      <p>This run calibrates against the standards you placed on <em>this</em> image, which already corrects for that photo's lighting/camera. For sturdier accuracy across many devices and cameras, a small trained correction file can be loaded here — it nudges the fitted line using patterns learned from prior runs. Loading one is optional; nothing breaks without it.</p>
+      <input type="file" id="modelFile" accept="application/json">
+      <div id="modelStatus" style="font-size:12px;color:#4A6741;margin-top:8px;"></div>
+    </div>
+
+    <button class="btn btn-primary" id="pdfBtn" onclick="generateReport()">Download PDF report</button>
+    <span class="helptext" style="margin-left:10px;">Generates a printable, hospital-formatted patient report including the marked chip image.</span>
+
+    <div class="step-nav">
+      <button class="btn" onclick="prevStep()">← Back</button>
+      <div class="step-notice" id="notice5"></div>
+      <button class="btn btn-ghost" onclick="if(confirm('Start a new test? This clears all entered data.')) location.reload();">Start a new test</button>
+    </div>
+  </section>
+
+</div>
+
+<footer>Prototype analysis tool · not a validated diagnostic device · verify all results against your laboratory's accredited procedures before clinical use.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const STATE = {
+  standards: [],      // {id, label, conc, marker:{x,y,rx,ry,rot}|null, intensity:null}
+  reference: null,     // {id,label,marker,intensity} or null when disabled
+  unknown: {id:'unknown', label:'Sample (unknown)', marker:null, intensity:null},
+  image: {el:null, w:0, h:0, dataUrl:null},
+  armedId: null,
+  selectedId: null,
+  draggingId: null,
+  calibration: null,   // {m,b,r2,mode,channel}
+  result: null,        // {conc, interp}
+  modelCorrection: null,
+  idSeq: 1,
+  currentStep: 1,
+  maxReached: 1
+};
+
+const palette = ['#3FD0E0','#7FE3C8','#A6E07A','#E0C75A','#E0905A','#D17BD1'];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $ = (s)=>document.querySelector(s);
+function uid(){return 's'+(STATE.idSeq++);}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+$('#pCollect').value = todayStr();
+$('#pReport').value = todayStr();
+
+function allMarkerOwners(){
+  const arr = [...STATE.standards];
+  if(STATE.reference) arr.push(STATE.reference);
+  arr.push(STATE.unknown);
+  return arr;
+}
+function getOwner(id){return allMarkerOwners().find(o=>o.id===id);}
+
+/* ============================================================
+   STEP-BY-STEP NAVIGATION
+   ============================================================ */
+function showStep(n){
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+  STATE.currentStep = n;
+  clearStepNotice();
+  updateStepperUI();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function updateStepperUI(){
+  document.querySelectorAll('.stepper button').forEach((btn,i)=>{
+    const n=i+1;
+    btn.classList.toggle('current', n===STATE.currentStep);
+    btn.classList.toggle('done', n!==STATE.currentStep && n<=STATE.maxReached);
+  });
+}
+function nextStep(){
+  const v = validateStep(STATE.currentStep);
+  if(!v.ok){ showNotice(v.msg); return; }
+  const target = Math.min(STATE.currentStep+1, 5);
+  STATE.maxReached = Math.max(STATE.maxReached, target);
+  showStep(target);
+}
+function prevStep(){ showStep(Math.max(STATE.currentStep-1, 1)); }
+function showNotice(msg){
+  const el = document.getElementById('notice'+STATE.currentStep);
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'step-notice show warn';
+}
+function clearStepNotice(){
+  document.querySelectorAll('.step-notice').forEach(el=>{ el.className='step-notice'; el.textContent=''; });
+}
+function validateStep(n){
+  if(n===2){
+    const valid = STATE.standards.filter(s=>s.conc!=='' && !isNaN(s.conc));
+    if(valid.length<2) return {ok:false, msg:'Add at least two standard chambers with a known concentration value before continuing.'};
+  }
+  if(n===3){
+    if(!STATE.image.el) return {ok:false, msg:'Upload or capture a chip photo before continuing.'};
+    if(!STATE.unknown.marker) return {ok:false, msg:'Place a marker on the unknown sample chamber before continuing.'};
+    const placedStds = STATE.standards.filter(s=>s.marker && s.conc!=='' && !isNaN(s.conc));
+    if(placedStds.length<2) return {ok:false, msg:'Place markers on at least two standard chambers before continuing.'};
+    if(!STATE.calibration) sampleAllMarkers();
+    if(!STATE.calibration) return {ok:false, msg:'Could not calibrate yet — double-check marker placement, then continue.'};
+  }
+  return {ok:true};
+}
+
+/* ============================================================
+   STANDARDS TABLE
+   ============================================================ */
+function addStandardRow(initVal){
+  const idx = STATE.standards.length;
+  const row = {id: uid(), label:'Standard '+(idx+1), conc: initVal!==undefined?initVal:'', marker:null, intensity:null};
+  STATE.standards.push(row);
+  renderStandardsTable();
+  refreshMarkerChooser();
+}
+function removeStandardRow(id){
+  STATE.standards = STATE.standards.filter(r=>r.id!==id);
+  if(STATE.selectedId===id) deselectMarker();
+  renderStandardsTable();
+  refreshMarkerChooser();
+  drawStage();
+}
+function renderStandardsTable(){
+  const body = $('#standardsBody');
+  body.innerHTML='';
+  STATE.standards.forEach((r,i)=>{
+    const color = palette[i%palette.length];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="swatch" style="border-color:${color}"></span>${r.label}</td>
+      <td><input type="number" step="any" value="${r.conc}" onchange="setStdConc('${r.id}', this.value)" placeholder="e.g. 25"></td>
+      <td>${r.marker ? '<span class="status-pill ok">placed</span>' : '<span class="status-pill">not placed</span>'}</td>
+      <td class="mono-num">${r.intensity!==null ? r.intensity.toFixed(1) : '—'}</td>
+      <td><button class="btn-ghost btn-danger" onclick="removeStandardRow('${r.id}')" title="remove">✕</button></td>`;
+    body.appendChild(tr);
+  });
+}
+function setStdConc(id,val){
+  const r = STATE.standards.find(x=>x.id===id);
+  if(r) r.conc = val===''?'':parseFloat(val);
+}
+function toggleReference(){
+  const on = $('#refEnable').checked;
+  $('#refRowWrap').style.display = on? 'block':'none';
+  if(on && !STATE.reference){
+    STATE.reference = {id:uid(), label:'Reference / blank', marker:null, intensity:null};
+  } else if(!on){
+    STATE.reference = null;
+  }
+  renderRefRow();
+  refreshMarkerChooser();
+}
+function renderRefRow(){
+  const tr = $('#refRow');
+  if(!STATE.reference){ tr.innerHTML=''; return; }
+  tr.innerHTML = `
+    <td><span class="swatch" style="border-color:#ffffff"></span>${STATE.reference.label}</td>
+    <td style="color:var(--faint);font-size:12px">no marker, just for normalization</td>
+    <td>${STATE.reference.marker ? '<span class="status-pill ok">placed</span>' : '<span class="status-pill">not placed</span>'}</td>
+    <td class="mono-num">${STATE.reference.intensity!==null ? STATE.reference.intensity.toFixed(1) : '—'}</td>
+    <td></td>`;
+}
+// default two standards to start
+addStandardRow(); addStandardRow();
+
+/* ============================================================
+   IMAGE INPUT: upload + camera
+   ============================================================ */
+function switchTab(which){
+  $('#tabUpload').classList.toggle('active', which==='upload');
+  $('#tabCamera').classList.toggle('active', which==='camera');
+  $('#uploadPane').style.display = which==='upload' ? 'block':'none';
+  $('#cameraPane').style.display = which==='camera' ? 'block':'none';
+}
+$('#fileInput').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=> loadImageFromDataUrl(reader.result);
+  reader.readAsDataURL(f);
+});
+
+let camStream=null;
+async function startCamera(){
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const v = $('#camVideo');
+    v.srcObject = camStream;
+    v.style.display='block';
+    $('#snapBtn').disabled = false;
+  }catch(err){
+    showAlert('viewerAlert','warn','Could not access camera: '+err.message+'. You can use "Upload photo" instead.');
+  }
+}
+function captureFrame(){
+  const v = $('#camVideo');
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  loadImageFromDataUrl(c.toDataURL('image/png'));
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); }
+  v.style.display='none';
+}
+function loadImageFromDataUrl(dataUrl){
+  const img = new Image();
+  img.onload = ()=>{
+    const MAXW = 1400;
+    let w = img.naturalWidth, h = img.naturalHeight;
+    if(w > MAXW){ h = Math.round(h * MAXW/w); w = MAXW; }
+    STATE.image = {el:img, w, h, dataUrl};
+    // reset marker positions (new image, old coordinates invalid)
+    allMarkerOwners().forEach(o=>{o.marker=null; o.intensity=null;});
+    renderStandardsTable(); renderRefRow();
+    $('#emptyMsg').style.display='none';
+    const stage = $('#stage');
+    stage.style.display='block';
+    stage.width = w; stage.height = h;
+    drawStage();
+    updateSampleBtnState();
+  };
+  img.src = dataUrl;
+}
+
+/* ============================================================
+   MARKER CHOOSER + ARMING
+   ============================================================ */
+function refreshMarkerChooser(){
+  const sel = $('#markerChooser');
+  sel.innerHTML='';
+  allMarkerOwners().forEach(o=>{
+    const opt = document.createElement('option');
+    opt.value=o.id; opt.textContent=o.label + (o.marker?' ✓':'');
+    sel.appendChild(opt);
+  });
+}
+refreshMarkerChooser();
+
+function armSelectedMarker(){
+  const id = $('#markerChooser').value;
+  if(!id) return;
+  if(!STATE.image.el){ showAlert('viewerAlert','warn','Load an image first.'); return; }
+  STATE.armedId = id;
+  $('#armHint').textContent = 'Click on the image to place "'+getOwner(id).label+'"';
+}
+
+/* ============================================================
+   CANVAS DRAW + INTERACTION
+   ============================================================ */
+function colorFor(owner){
+  if(owner.id==='unknown') return '#FFB454';
+  if(STATE.reference && owner.id===STATE.reference.id) return '#FFFFFF';
+  const i = STATE.standards.findIndex(s=>s.id===owner.id);
+  return palette[i>=0? i%palette.length : 0];
+}
+function drawStage(){
+  if(!STATE.image.el) return;
+  const stage = $('#stage');
+  const ctx = stage.getContext('2d');
+  ctx.clearRect(0,0,stage.width,stage.height);
+  ctx.drawImage(STATE.image.el,0,0,stage.width,stage.height);
+
+  allMarkerOwners().forEach(o=>{
+    if(!o.marker) return;
+    const {x,y,rx,ry,rot} = o.marker;
+    const c = colorFor(o);
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(rot*Math.PI/180);
+    ctx.beginPath();
+    ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);
+    ctx.lineWidth = (o.id===STATE.selectedId)?3:2;
+    ctx.strokeStyle = c;
+    if(STATE.reference && o.id===STATE.reference.id) ctx.setLineDash([5,4]);
+    else ctx.setLineDash([]);
+    ctx.shadowColor = c; ctx.shadowBlur = (o.id===STATE.selectedId)?14:6;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.font='600 13px IBM Plex Mono, monospace';
+    ctx.fillStyle = c;
+    ctx.shadowColor='#000'; ctx.shadowBlur=4;
+    const label = STATE.reference && o.id===STATE.reference.id ? 'REF' : (o.id==='unknown' ? 'X' : 'S'+(STATE.standards.findIndex(s=>s.id===o.id)+1));
+    ctx.fillText(label, x - rx - 4, y - ry - 8);
+    ctx.restore();
+  });
+}
+function canvasPointFromEvent(e){
+  const stage = $('#stage');
+  const rect = stage.getBoundingClientRect();
+  const scaleX = stage.width/rect.width, scaleY = stage.height/rect.height;
+  const cx = (e.touches? e.touches[0].clientX : e.clientX) - rect.left;
+  const cy = (e.touches? e.touches[0].clientY : e.clientY) - rect.top;
+  return {x: cx*scaleX, y: cy*scaleY};
+}
+function hitTest(pt){
+  let found=null;
+  allMarkerOwners().forEach(o=>{
+    if(!o.marker) return;
+    const {x,y,rx,ry,rot} = o.marker;
+    const dx=pt.x-x, dy=pt.y-y;
+    const rad=-rot*Math.PI/180;
+    const rxr = dx*Math.cos(rad)-dy*Math.sin(rad);
+    const ryr = dx*Math.sin(rad)+dy*Math.cos(rad);
+    if((rxr*rxr)/(rx*rx) + (ryr*ryr)/(ry*ry) <= 1) found=o;
+  });
+  return found;
+}
+function stagePointerDown(e){
+  if(!STATE.image.el) return;
+  const pt = canvasPointFromEvent(e);
+  if(STATE.armedId){
+    const owner = getOwner(STATE.armedId);
+    owner.marker = {x:pt.x, y:pt.y, rx:32, ry:22, rot:0};
+    STATE.armedId=null;
+    $('#armHint').textContent='';
+    selectMarker(owner.id);
+    renderStandardsTable(); renderRefRow(); refreshMarkerChooser();
+    updateSampleBtnState();
+    drawStage();
+    return;
+  }
+  const hit = hitTest(pt);
+  if(hit){
+    selectMarker(hit.id);
+    STATE.draggingId = hit.id;
+    STATE.dragOffset = {x:pt.x-hit.marker.x, y:pt.y-hit.marker.y};
+  } else {
+    deselectMarker();
+  }
+}
+function stagePointerMove(e){
+  if(!STATE.draggingId) return;
+  const pt = canvasPointFromEvent(e);
+  const owner = getOwner(STATE.draggingId);
+  owner.marker.x = pt.x - STATE.dragOffset.x;
+  owner.marker.y = pt.y - STATE.dragOffset.y;
+  drawStage();
+}
+function stagePointerUp(){ STATE.draggingId=null; }
+
+function selectMarker(id){
+  STATE.selectedId = id;
+  const owner = getOwner(id);
+  $('#mpName').textContent = owner.label;
+  $('#mpRx').value = owner.marker.rx; $('#mpRxVal').textContent = owner.marker.rx;
+  $('#mpRy').value = owner.marker.ry; $('#mpRyVal').textContent = owner.marker.ry;
+  $('#mpRot').value = owner.marker.rot; $('#mpRotVal').textContent = owner.marker.rot+'°';
+  $('#markerPanel').classList.add('show');
+  drawStage();
+}
+function deselectMarker(){
+  STATE.selectedId = null;
+  $('#markerPanel').classList.remove('show');
+  drawStage();
+}
+function updateSelectedFromPanel(){
+  if(!STATE.selectedId) return;
+  const owner = getOwner(STATE.selectedId);
+  owner.marker.rx = parseFloat($('#mpRx').value);
+  owner.marker.ry = parseFloat($('#mpRy').value);
+  owner.marker.rot = parseFloat($('#mpRot').value);
+  $('#mpRxVal').textContent = owner.marker.rx;
+  $('#mpRyVal').textContent = owner.marker.ry;
+  $('#mpRotVal').textContent = owner.marker.rot+'°';
+  drawStage();
+}
+function deleteSelectedMarker(){
+  if(!STATE.selectedId) return;
+  const owner = getOwner(STATE.selectedId);
+  owner.marker=null; owner.intensity=null;
+  deselectMarker();
+  renderStandardsTable(); renderRefRow(); refreshMarkerChooser();
+  updateSampleBtnState();
+  drawStage();
+}
+
+['mousedown','touchstart'].forEach(evt=>$('#stage')?.addEventListener?.(evt, stagePointerDown));
+function bindStageEvents(){
+  const stage = $('#stage');
+  stage.addEventListener('mousedown', stagePointerDown);
+  stage.addEventListener('mousemove', stagePointerMove);
+  window.addEventListener('mouseup', stagePointerUp);
+  stage.addEventListener('touchstart', (e)=>{stagePointerDown(e);}, {passive:true});
+  stage.addEventListener('touchmove', (e)=>{stagePointerMove(e); e.preventDefault();}, {passive:false});
+  stage.addEventListener('touchend', stagePointerUp);
+}
+bindStageEvents();
+
+function updateSampleBtnState(){
+  const ready = STATE.image.el && STATE.unknown.marker && STATE.standards.filter(s=>s.marker && s.conc!=='' && !isNaN(s.conc)).length>=2;
+  $('#sampleBtn').disabled = !ready;
+}
+// re-check whenever conc fields change
+document.addEventListener('input', updateSampleBtnState);
+
+/* ============================================================
+   COLOR SAMPLING
+   ============================================================ */
+function sampleEllipse(ctx, marker){
+  const {x,y,rx,ry,rot} = marker;
+  const x0 = Math.max(0, Math.floor(x-rx-2)), y0 = Math.max(0, Math.floor(y-ry-2));
+  const x1 = Math.min(ctx.canvas.width, Math.ceil(x+rx+2)), y1 = Math.min(ctx.canvas.height, Math.ceil(y+ry+2));
+  const w = x1-x0, h = y1-y0;
+  if(w<=0||h<=0) return {r:0,g:0,b:0};
+  const data = ctx.getImageData(x0,y0,w,h).data;
+  const rad = -rot*Math.PI/180;
+  let rs=0,gs=0,bs=0,n=0;
+  for(let j=0;j<h;j++){
+    for(let i=0;i<w;i++){
+      const px=x0+i, py=y0+j;
+      const dx=px-x, dy=py-y;
+      const rxr = dx*Math.cos(rad)-dy*Math.sin(rad);
+      const ryr = dx*Math.sin(rad)+dy*Math.cos(rad);
+      if((rxr*rxr)/(rx*rx)+(ryr*ryr)/(ry*ry) <= 1){
+        const idx=(j*w+i)*4;
+        rs+=data[idx]; gs+=data[idx+1]; bs+=data[idx+2]; n++;
+      }
+    }
+  }
+  if(n===0) return {r:0,g:0,b:0};
+  return {r:rs/n, g:gs/n, b:bs/n};
+}
+function intensityFromRGB(rgb, mode){
+  const {r,g,b} = rgb;
+  const gray = 0.299*r+0.587*g+0.114*b;
+  switch(mode){
+    case 'gray': return gray;
+    case 'invgray': return 255-gray;
+    case 'r': return r;
+    case 'g': return g;
+    case 'b': return b;
+    case 'sat': {
+      const max=Math.max(r,g,b)/255, min=Math.min(r,g,b)/255;
+      const l=(max+min)/2;
+      const s = max===min ? 0 : (l>0.5 ? (max-min)/(2-max-min) : (max-min)/(max+min));
+      return s*255;
+    }
+    default: return gray;
+  }
+}
+
+function sampleAllMarkers(){
+  if(!STATE.image.el) return;
+  const stage = $('#stage');
+  const ctx = stage.getContext('2d');
+  const mode = $('#channelSelect').value;
+
+  allMarkerOwners().forEach(o=>{
+    if(!o.marker) return;
+    const rgb = sampleEllipse(ctx, o.marker);
+    o.intensity = intensityFromRGB(rgb, mode);
+  });
+  renderStandardsTable(); renderRefRow();
+  runCalibration();
+}
+
+/* ============================================================
+   CALIBRATION + RESULT
+   ============================================================ */
+function leastSquares(xs, ys){
+  const n = xs.length;
+  const mx = xs.reduce((a,b)=>a+b,0)/n;
+  const my = ys.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for(let i=0;i<n;i++){ num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)*(xs[i]-mx); }
+  const m = den===0 ? 0 : num/den;
+  const b = my - m*mx;
+  // R^2
+  let ssTot=0, ssRes=0;
+  for(let i=0;i<n;i++){
+    const pred = m*xs[i]+b;
+    ssTot += (ys[i]-my)*(ys[i]-my);
+    ssRes += (ys[i]-pred)*(ys[i]-pred);
+  }
+  const r2 = ssTot===0 ? 1 : 1-(ssRes/ssTot);
+  return {m,b,r2};
+}
+
+function runCalibration(){
+  const usable = STATE.standards.filter(s=>s.marker && s.intensity!==null && s.conc!=='' && !isNaN(s.conc));
+  if(usable.length<2 || STATE.unknown.intensity===null){
+    showAlert('viewerAlert','warn','Place markers on at least 2 standards (with concentration values) plus the unknown sample, then sample again.');
+    return;
+  }
+  hideAlert('viewerAlert');
+
+  const refIntensity = STATE.reference && STATE.reference.intensity!==null ? STATE.reference.intensity : null;
+  const baseline = 128; // fixed reference point so corrected values stay in a similar range
+  const corr = (raw)=> refIntensity===null ? raw : (raw - refIntensity + baseline);
+
+  const fitMode = $('#fitSelect').value;
+  const xs = usable.map(s=>corr(s.intensity));
+  const ysRaw = usable.map(s=>s.conc);
+  const ys = fitMode==='loglinear' ? ysRaw.map(v=>Math.log(Math.max(v,1e-6))) : ysRaw;
+
+  let {m,b,r2} = leastSquares(xs, ys);
+
+  // optional roadmap correction model
+  if(STATE.modelCorrection){
+    m += (STATE.modelCorrection.slopeAdj||0);
+    b += (STATE.modelCorrection.interceptAdj||0);
+  }
+
+  STATE.calibration = {m,b,r2,mode:fitMode, channel:$('#channelSelect').value, refIntensity, baseline};
+
+  const ux = corr(STATE.unknown.intensity);
+  let conc = m*ux + b;
+  if(fitMode==='loglinear') conc = Math.exp(conc);
+  conc = Math.max(0, conc);
+
+  STATE.result = {conc};
+  renderCalibTable(usable, corr);
+  recomputeInterpretation();
+}
+
+function renderCalibTable(usable, corrFn){
+  $('#calibTable').style.display='table';
+  const body = $('#calibBody');
+  body.innerHTML='';
+  usable.forEach((s,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="swatch" style="border-color:${palette[STATE.standards.indexOf(s)%palette.length]}"></span>${s.label}</td>
+      <td>${s.conc} ${$('#unitSelect').value}</td>
+      <td>${corrFn(s.intensity).toFixed(1)}</td>`;
+    body.appendChild(tr);
+  });
+  const c = STATE.calibration;
+  const eqn = c.mode==='loglinear'
+    ? `ln(concentration) = ${c.m.toFixed(4)} × intensity + ${c.b.toFixed(3)}`
+    : `concentration = ${c.m.toFixed(4)} × intensity + ${c.b.toFixed(3)}`;
+  $('#fitLineWrap').innerHTML = `<div class="fit-line">${eqn}</div>`;
+  $('#r2Display').textContent = 'R² = '+c.r2.toFixed(4) + (c.refIntensity!==null ? ' · reference-corrected' : '');
+}
+
+function recomputeInterpretation(){
+  $('#cutoffLowWrap').style.display = $('#borderlineEnable').checked ? 'block':'none';
+  if(!STATE.result) return;
+  const unit = $('#unitSelect').value;
+  $('#resultConc').textContent = STATE.result.conc.toFixed(2);
+  $('#resultUnit').textContent = unit;
+
+  const high = parseFloat($('#cutoffHigh').value);
+  const low = parseFloat($('#cutoffLow').value);
+  const useBand = $('#borderlineEnable').checked && !isNaN(low);
+  const tag = $('#interpTag');
+  tag.classList.remove('positive','negative','borderline','pending');
+
+  if(isNaN(high)){
+    tag.textContent='Enter a cutoff';
+    tag.classList.add('pending');
+    STATE.result.interp = null;
+    return;
+  }
+  let interp;
+  if(useBand){
+    if(STATE.result.conc >= high){ interp='Positive'; tag.classList.add('positive'); }
+    else if(STATE.result.conc < low){ interp='Negative'; tag.classList.add('negative'); }
+    else { interp='Borderline / Equivocal'; tag.classList.add('borderline'); }
+  } else {
+    if(STATE.result.conc >= high){ interp='Positive'; tag.classList.add('positive'); }
+    else { interp='Negative'; tag.classList.add('negative'); }
+  }
+  tag.textContent = interp;
+  STATE.result.interp = interp;
+}
+['cutoffHigh','cutoffLow'].forEach(id=>$('#'+id).addEventListener('input', recomputeInterpretation));
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+function showAlert(id, kind, msg){
+  const el = $('#'+id);
+  el.className='alert show '+kind;
+  el.textContent = msg;
+}
+function hideAlert(id){ $('#'+id).className='alert'; }
+
+/* ============================================================
+   ROADMAP: correction model upload (stub hook)
+   ============================================================ */
+$('#modelFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const json = JSON.parse(reader.result);
+      STATE.modelCorrection = json;
+      $('#modelStatus').textContent = 'Correction model loaded ('+(json.name||'unnamed')+'). It will be applied next time you calibrate.';
+    }catch(err){
+      $('#modelStatus').textContent = 'Could not read that file as JSON.';
+    }
+  };
+  reader.readAsText(f);
+});
+
+/* ============================================================
+   PDF REPORT
+   ============================================================ */
+function generateReport(){
+  if(!STATE.result || !STATE.calibration){
+    showAlert('viewerAlert','warn','Run "Sample colors & calibrate" before generating the report.');
+    document.getElementById('step3').scrollIntoView();
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const W = doc.internal.pageSize.getWidth();
+  const margin = 48;
+  let y = 56;
+
+  // Header
+  doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.text(($('#pHospital').value || 'Laboratory'), margin, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110);
+  y+=14; doc.text('Anti-dsDNA Antibody Test Report · Microfluidic Colorimetric Assay', margin, y);
+  doc.setDrawColor(220); doc.line(margin, y+10, W-margin, y+10);
+  doc.setTextColor(20);
+
+  // Patient block
+  y+=34;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('PATIENT INFORMATION', margin, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+  const rows = [
+    ['Name', $('#pName').value||'—', 'Patient ID', $('#pId').value||'—'],
+    ['Age / Sex', (($('#pAge').value||'—')+' / '+$('#pSex').value), 'Sample ID', $('#pSample').value||'—'],
+    ['Referring Doctor', $('#pDoctor').value||'—', 'Collected', $('#pCollect').value||'—'],
+    ['Report Date', $('#pReport').value||'—', 'Method', 'Microfluidic colorimetric immunoassay']
+  ];
+  y+=16;
+  rows.forEach(r=>{
+    doc.setTextColor(120); doc.text(r[0], margin, y);
+    doc.setTextColor(20); doc.text(String(r[1]), margin+95, y);
+    doc.setTextColor(120); doc.text(r[2], margin+300, y);
+    doc.setTextColor(20); doc.text(String(r[3]), margin+390, y);
+    y+=16;
+  });
+
+  // Result block
+  y+=14;
+  doc.setDrawColor(220); doc.line(margin, y, W-margin, y); y+=24;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('RESULT', margin, y);
+  y+=22;
+  doc.setFont('helvetica','bold'); doc.setFontSize(22);
+  doc.text(STATE.result.conc.toFixed(2)+' '+$('#unitSelect').value, margin, y);
+  doc.setFontSize(13);
+  const interp = STATE.result.interp || 'Not interpreted';
+  const interpColor = interp==='Positive' ? [178,58,72] : interp==='Negative' ? [47,122,82] : [168,123,18];
+  doc.setTextColor(...interpColor);
+  doc.text(interp.toUpperCase(), margin+280, y-4);
+  doc.setTextColor(20);
+  y+=18;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.setTextColor(120);
+  const cutHigh = $('#cutoffHigh').value, cutLow = $('#cutoffLow').value, band = $('#borderlineEnable').checked;
+  doc.text('Reference: '+(band && cutLow ? ('Negative < '+cutLow+' · Borderline '+cutLow+'–'+cutHigh+' · Positive ≥ '+cutHigh) : ('Positive ≥ '+(cutHigh||'—')))+' '+$('#unitSelect').value, margin, y);
+  doc.setTextColor(20);
+
+  // Calibration table
+  y+=28;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text('CALIBRATION STANDARDS', margin, y);
+  y+=16;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  const usable = STATE.standards.filter(s=>s.marker && s.intensity!==null);
+  doc.setTextColor(120);
+  doc.text('Chamber', margin, y); doc.text('Known conc.', margin+160, y); doc.text('Sampled intensity', margin+300, y);
+  doc.setTextColor(20); y+=4;
+  doc.setDrawColor(230); doc.line(margin,y+4,margin+440,y+4); y+=16;
+  usable.forEach(s=>{
+    doc.text(s.label, margin, y);
+    doc.text(String(s.conc)+' '+$('#unitSelect').value, margin+160, y);
+    doc.text(s.intensity.toFixed(1), margin+300, y);
+    y+=15;
+  });
+  y+=6;
+  doc.setFont('helvetica','italic'); doc.setFontSize(8.5); doc.setTextColor(120);
+  const c = STATE.calibration;
+  doc.text('Fit: '+(c.mode==='loglinear'?'log-linear':'linear')+' · R² = '+c.r2.toFixed(4)+(c.refIntensity!==null?' · reference-corrected for lighting/camera':''), margin, y);
+  doc.setTextColor(20);
+
+  // Chip image snapshot
+  y+=26;
+  if(STATE.image.dataUrl){
+    const imgW = 200;
+    const imgH = STATE.image.h/STATE.image.w*imgW;
+    try{ doc.addImage($('#stage').toDataURL('image/png'), 'PNG', margin, y, imgW, imgH); }catch(e){}
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(140);
+    doc.text('Captured chip image with calibration markers', margin, y+imgH+12);
+    doc.setTextColor(20);
+    y += imgH + 30;
+  }
+
+  // Signature lines
+  y = Math.max(y, doc.internal.pageSize.getHeight()-120);
+  doc.setDrawColor(180);
+  doc.line(margin, y, margin+170, y);
+  doc.line(W-margin-170, y, W-margin, y);
+  doc.setFontSize(8.5); doc.setTextColor(120);
+  doc.text('Performed by', margin, y+12);
+  doc.text('Authorized signatory / Pathologist', W-margin-170, y+12);
+
+  // Disclaimer
+  y = doc.internal.pageSize.getHeight()-46;
+  doc.setFontSize(7.5); doc.setTextColor(150);
+  doc.text('This result was generated by a prototype microfluidic colorimetric analyzer and is not a substitute for an accredited diagnostic test.', margin, y);
+  doc.text('Verify against validated laboratory procedures before clinical use.', margin, y+10);
+
+  const fname = 'dsDNA_Report_'+($('#pId').value||'patient')+'.pdf';
+  doc.save(fname);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+updateStepperUI();
+showStep(1);
+</script>
+</body>
+</html>
